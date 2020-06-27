@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_encrypter/file_encrypter.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -42,24 +44,27 @@ class EncryptApp extends StatelessWidget {
                 } catch (e) {
                   print(e);
                 }
+                print('FILE SIZE: ${File(path).statSync().size/1024/1024} MB');
+                final s = Stopwatch()..start();
                 key = await FileEncrypter.encrypt(
                   inFilename: '${(await getApplicationSupportDirectory()).path}/sarbagya.p.download',
                   outFileName: '${(await getApplicationSupportDirectory()).path}/sarbagya.dat',
                 );
                 print('KEY: $key');
-                print('Encryption Ended');
+                print('ENCRYPTION: Completed in ${s.elapsedMilliseconds} ms');
               },
               icon: Icon(Icons.cloud_download),
               label: Text('Download & Encrypt'),
             ),
             RaisedButton.icon(
               onPressed: () async {
+                final s = Stopwatch()..start();
                 await FileEncrypter.decrypt(
                   key: key,
                   inFilename: '${(await getApplicationSupportDirectory()).path}/sarbagya.dat',
                   outFileName: '${(await getApplicationSupportDirectory()).path}/podcast.dat',
                 );
-                print('Decryption Ended');
+                print('DECRYPTION: Completed in ${s.elapsedMilliseconds} ms');
               },
               icon: Icon(Icons.cloud_download),
               label: Text('Decrypt'),

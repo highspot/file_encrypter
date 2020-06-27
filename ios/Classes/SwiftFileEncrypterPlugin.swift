@@ -5,6 +5,7 @@ import CommonCrypto
 public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
     
     let bufferSize = 8192
+    var result: FlutterResult!
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "file_encrypter", binaryMessenger: registrar.messenger())
@@ -17,30 +18,35 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "", message: "Invalid Argument", details: nil))
             return
         }
+        self.result = result
         
-        switch call.method {
-        case "encrypt": encrypt(from: args["inFileName"], to: args["outFileName"], result)
-        case "decrypt": decrypt(using: args["key"], from: args["inFileName"], to: args["outFileName"], result)
-        default: result(FlutterMethodNotImplemented)
+        DispatchQueue.global(qos: .background).async {
+            switch call.method {
+            case "encrypt": self.encrypt(from: args["inFileName"], to: args["outFileName"])
+            case "decrypt": self.decrypt(using: args["key"], from: args["inFileName"], to: args["outFileName"])
+            default: result(FlutterMethodNotImplemented)
+            }
         }
+        
+        
     }
     
     
-    private func encrypt(from inFileName:String?, to outFileName: String?, _ result: @escaping FlutterResult){
+    private func encrypt(from inFileName:String?, to outFileName: String?){
         
         guard let fileIn = InputStream(fileAtPath: inFileName!) else{
-            result(fError("Failed to initialize input stream."))
+            errorResult("Failed to initialize input stream.")
             return
         }
         guard let fileOut = OutputStream(toFileAtPath: outFileName!, append: false) else {
-            result(fError("Failed to initialize output stream."))
+            errorResult("Failed to initialize output stream.")
             return
         }
         fileIn.open()
         fileOut.open()
         let iv  = try! Random.generateBytes(byteCount: 16)
         guard  let secretKey = createAlphaNumericRandomString(length: kCCKeySizeAES256) else{
-            result(fError("Invalid Key"))
+            errorResult("Invalid Key")
             return
         }
         let key = arrayFrom(secretKey)
@@ -50,7 +56,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         
         let encryptor = try! ChunkCryptor(encrypt: true, key: key, iv: iv)
         guard bytesWritten == iv.count else{
-            result(fError("Failed to write IV to encrypted output file."))
+            errorResult("Failed to write IV to encrypted output file.")
             return
         }
         
@@ -59,23 +65,23 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         fileOut.close()
         fileIn.close()
         
-        result(secretKey.toBase64())
+        successResult(secretKey.toBase64())
     }
     
-    private func decrypt(using baseKey:String?, from inFileName:String?, to outFileName: String?, _ result: @escaping FlutterResult){
+    private func decrypt(using baseKey:String?, from inFileName:String?, to outFileName: String?){
         guard let fileIn = InputStream(fileAtPath: inFileName!) else{
-            result(fError("Failed to initialize input stream."))
+            errorResult("Failed to initialize input stream.")
             return
         }
         guard let fileOut = OutputStream(toFileAtPath: outFileName!, append: false) else {
-            result(fError("Failed to initialize output stream."))
+            errorResult("Failed to initialize output stream.")
             return
         }
         fileIn.open()
         fileOut.open()
         
         guard let secretkey = baseKey?.fromBase64() else{
-            result(fError("Invalid key detected."))
+            errorResult("Invalid key detected.")
             return
         }
         var iv  = Array<UInt8>(repeating: 0, count: 16)
@@ -85,7 +91,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         
         let decryptor = try! ChunkCryptor(encrypt: false, key: key, iv: iv)
         guard bytesRead == iv.count else{
-            result(fError("Failed to read IV from encrypted output file."))
+            errorResult("Failed to read IV from encrypted output file.")
             return
         }
         
@@ -94,7 +100,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         fileOut.close()
         fileIn.close()
         
-        result(nil)
+        successResult(nil)
     }
     
     private func createAlphaNumericRandomString(length: Int) -> String? {
@@ -151,8 +157,16 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         return (totalBytesRead, totalBytesWritten)
     }
     
-    func fError(_ description: String) -> FlutterError{
-        return FlutterError(code: "", message: description, details: "")
+    private func successResult(_ data: String?){
+        DispatchQueue.main.async {
+            self.result(data)
+        }
+    }
+    
+    func errorResult(_ description: String){
+        DispatchQueue.main.async {
+            self.result(FlutterError(code: "", message: description, details: ""))
+        }
     }
     
 }
