@@ -30,7 +30,9 @@ class EncryptApp extends StatelessWidget {
                 final path = '${(await getApplicationSupportDirectory()).path}/sarbagya.p.download';
                 try {
                   await Dio().download(
-                    'http://25.io/toau/audio/sample.txt',
+                    'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+                   // 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+                   //'http://25.io/toau/audio/sample.txt',
                     path,
                     onReceiveProgress: (s, t) {
                       print((s / t).toStringAsFixed(2));
