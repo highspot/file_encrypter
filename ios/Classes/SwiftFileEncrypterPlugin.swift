@@ -2,9 +2,9 @@ import Flutter
 import UIKit
 import CommonCrypto
 
-let bufferSize = 8192
-
 public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
+    
+    let bufferSize = 8192
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "file_encrypter", binaryMessenger: registrar.messenger())
@@ -17,7 +17,6 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "", message: "Invalid Argument", details: nil))
             return
         }
-        print(args)
         
         switch call.method {
         case "encrypt": encrypt(from: args["inFileName"], to: args["outFileName"], result)
@@ -49,7 +48,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         
         let bytesWritten = fileOut.write(iv, maxLength: iv.count)
         
-        let encryptor = try! StreamCryptor(encrypt: true, key: key, iv: iv)
+        let encryptor = try! ChunkCryptor(encrypt: true, key: key, iv: iv)
         guard bytesWritten == iv.count else{
             result(fError("Failed to write IV to encrypted output file."))
             return
@@ -59,8 +58,6 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         
         fileOut.close()
         fileIn.close()
-        
-        print(secretKey.toBase64())
         
         result(secretKey.toBase64())
     }
@@ -86,7 +83,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         
         let bytesRead = fileIn.read(&iv, maxLength: iv.count)
         
-        let decryptor = try! StreamCryptor(encrypt: false, key: key, iv: iv)
+        let decryptor = try! ChunkCryptor(encrypt: false, key: key, iv: iv)
         guard bytesRead == iv.count else{
             result(fError("Failed to read IV from encrypted output file."))
             return
@@ -121,7 +118,7 @@ public class SwiftFileEncrypterPlugin: NSObject, FlutterPlugin {
         return alphaNumericRandomString
     }
     
-    @discardableResult private func crypt(action sc : StreamCryptor,from  inputStream: InputStream,to outputStream: OutputStream,taking bufferSize: Int) -> (bytesRead: Int, bytesWritten: Int)
+    @discardableResult private func crypt(action sc : ChunkCryptor,from  inputStream: InputStream,to outputStream: OutputStream,taking bufferSize: Int) -> (bytesRead: Int, bytesWritten: Int)
     {
         var inputBuffer = Array<UInt8>(repeating:0, count:1024)
         var outputBuffer = Array<UInt8>(repeating:0, count:1024)

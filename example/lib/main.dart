@@ -46,6 +46,7 @@ class EncryptApp extends StatelessWidget {
                   inFilename: '${(await getApplicationSupportDirectory()).path}/sarbagya.p.download',
                   outFileName: '${(await getApplicationSupportDirectory()).path}/sarbagya.dat',
                 );
+                print('KEY: $key');
                 print('Encryption Ended');
               },
               icon: Icon(Icons.cloud_download),
