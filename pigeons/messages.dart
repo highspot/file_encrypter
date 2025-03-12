@@ -8,12 +8,13 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     input: 'pigeons/messages.dart',
     kotlinOut:
-        'android/src/main/kotlin/io/flutter/plugins/sharedpreferences/MessagesAsync.g.kt',
+        'android/src/main/kotlin/np/com/sarbagyastha/file_encrypter/Messages.kt',
     kotlinOptions: KotlinOptions(
-      package: 'io.flutter.plugins.sharedpreferences',
-      errorClassName: 'SharedPreferencesError',
+      package: 'np.com.sarbagyastha.file_encrypter',
+      errorClassName: 'FileEncrypterError',
     ),
-    dartOut: 'lib/src/messages_async.g.dart',
+    swiftOut: 'ios/Classes/Messages.swift',
+    dartOut: 'lib/src/messages.g.dart',
     copyrightHeader: 'pigeons/copyright.txt',
   ),
 )
