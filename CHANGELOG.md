@@ -1,5 +1,3 @@
-## 1.0.1
-* **(Improvement)** Run encryption/decryption off the Main thread
+## 0.0.1
 
-## 1.0.0
-* Initial Release
+* TODO: Describe initial release.
