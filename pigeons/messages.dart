@@ -20,9 +20,9 @@ import 'package:pigeon/pigeon.dart';
 )
 @HostApi()
 abstract class FileEncrypterApi {
-  @TaskQueue(type: TaskQueueType.serialBackgroundThread)
-  String encrypt(String inFilename, String outFileName);
+  @async
+  String encrypt(String inFileName, String outFileName);
 
-  @TaskQueue(type: TaskQueueType.serialBackgroundThread)
-  void decrypt(String key, String inFilename, String outFileName);
+  @async
+  void decrypt(String key, String inFileName, String outFileName);
 }

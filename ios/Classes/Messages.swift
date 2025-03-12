@@ -87,10 +87,11 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
   static let shared = MessagesPigeonCodec(readerWriter: MessagesPigeonCodecReaderWriter())
 }
 
+
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol FileEncrypterApi {
-  func encrypt(inFilename: String, outFileName: String) throws -> String
-  func decrypt(key: String, inFilename: String, outFileName: String) throws
+  func encrypt(inFileName: String, outFileName: String, completion: @escaping (Result<String, Error>) -> Void)
+  func decrypt(key: String, inFileName: String, outFileName: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -99,45 +100,38 @@ class FileEncrypterApiSetup {
   /// Sets up an instance of `FileEncrypterApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: FileEncrypterApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    #if os(iOS)
-      let taskQueue = binaryMessenger.makeBackgroundTaskQueue?()
-    #else
-      let taskQueue: FlutterTaskQueue? = nil
-    #endif
-    let encryptChannel = taskQueue == nil
-      ? FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
-      : FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec, taskQueue: taskQueue)
-    
+    let encryptChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       encryptChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
-        let inFilenameArg = args[0] as! String
+        let inFileNameArg = args[0] as! String
         let outFileNameArg = args[1] as! String
-        do {
-          let result = try api.encrypt(inFilename: inFilenameArg, outFileName: outFileNameArg)
-          reply(wrapResult(result))
-        } catch {
-          reply(wrapError(error))
+        api.encrypt(inFileName: inFileNameArg, outFileName: outFileNameArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {
       encryptChannel.setMessageHandler(nil)
     }
-    let decryptChannel = taskQueue == nil
-      ? FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
-      : FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec, taskQueue: taskQueue)
-    
+    let decryptChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       decryptChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let keyArg = args[0] as! String
-        let inFilenameArg = args[1] as! String
+        let inFileNameArg = args[1] as! String
         let outFileNameArg = args[2] as! String
-        do {
-          try api.decrypt(key: keyArg, inFilename: inFilenameArg, outFileName: outFileNameArg)
-          reply(wrapResult(nil))
-        } catch {
-          reply(wrapError(error))
+        api.decrypt(key: keyArg, inFileName: inFileNameArg, outFileName: outFileNameArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {

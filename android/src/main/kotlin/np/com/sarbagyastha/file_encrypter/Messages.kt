@@ -57,10 +57,11 @@ private open class MessagesPigeonCodec : StandardMessageCodec() {
   }
 }
 
+
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface FileEncrypterApi {
-  fun encrypt(inFilename: String, outFileName: String): String
-  fun decrypt(key: String, inFilename: String, outFileName: String)
+  fun encrypt(inFileName: String, outFileName: String, callback: (Result<String>) -> Unit)
+  fun decrypt(key: String, inFileName: String, outFileName: String, callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by FileEncrypterApi. */
@@ -71,40 +72,43 @@ interface FileEncrypterApi {
     @JvmOverloads
     fun setUp(binaryMessenger: BinaryMessenger, api: FileEncrypterApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-      val taskQueue = binaryMessenger.makeBackgroundTaskQueue()
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt$separatedMessageChannelSuffix", codec, taskQueue)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
-            val inFilenameArg = args[0] as String
+            val inFileNameArg = args[0] as String
             val outFileNameArg = args[1] as String
-            val wrapped: List<Any?> = try {
-              listOf(api.encrypt(inFilenameArg, outFileNameArg))
-            } catch (exception: Throwable) {
-              wrapError(exception)
+            api.encrypt(inFileNameArg, outFileNameArg) { result: Result<String> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(wrapResult(data))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt$separatedMessageChannelSuffix", codec, taskQueue)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val keyArg = args[0] as String
-            val inFilenameArg = args[1] as String
+            val inFileNameArg = args[1] as String
             val outFileNameArg = args[2] as String
-            val wrapped: List<Any?> = try {
-              api.decrypt(keyArg, inFilenameArg, outFileNameArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
+            api.decrypt(keyArg, inFileNameArg, outFileNameArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
             }
-            reply.reply(wrapped)
           }
         } else {
           channel.setMessageHandler(null)

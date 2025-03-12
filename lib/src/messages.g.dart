@@ -53,14 +53,14 @@ class FileEncrypterApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  Future<String> encrypt(String inFilename, String outFileName) async {
+  Future<String> encrypt(String inFileName, String outFileName) async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.file_encrypter.FileEncrypterApi.encrypt$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[inFilename, outFileName]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[inFileName, outFileName]);
     final List<Object?>? pigeonVar_replyList =
         await pigeonVar_sendFuture as List<Object?>?;
     if (pigeonVar_replyList == null) {
@@ -81,14 +81,14 @@ class FileEncrypterApi {
     }
   }
 
-  Future<void> decrypt(String key, String inFilename, String outFileName) async {
+  Future<void> decrypt(String key, String inFileName, String outFileName) async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.file_encrypter.FileEncrypterApi.decrypt$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[key, inFilename, outFileName]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[key, inFileName, outFileName]);
     final List<Object?>? pigeonVar_replyList =
         await pigeonVar_sendFuture as List<Object?>?;
     if (pigeonVar_replyList == null) {
