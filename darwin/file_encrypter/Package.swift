@@ -7,7 +7,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "shared_preferences_foundation",
+  name: "file_encrypter",
   platforms: [
     .iOS("12.0"),
     .macOS("10.14"),

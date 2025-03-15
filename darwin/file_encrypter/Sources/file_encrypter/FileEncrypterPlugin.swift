@@ -6,10 +6,16 @@
 //
 
 import CommonCrypto
+
+#if os(iOS)
 import Flutter
-import UIKit
+#elseif os(macOS)
+import FlutterMacOS
+#endif
 
 public class FileEncrypterPlugin: NSObject, FlutterPlugin, FileEncrypterApi {
+    let bufferSize = 8192
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = FileEncrypterPlugin()
         // Workaround for https://github.com/flutter/flutter/issues/118103.
@@ -21,74 +27,98 @@ public class FileEncrypterPlugin: NSObject, FlutterPlugin, FileEncrypterApi {
         FileEncrypterApiSetup.setUp(binaryMessenger: messenger, api: instance)
     }
     
-    private func encrypt(from inFileName:String, to outFileName: String, completion: @escaping (Result<String, any Error>) -> Void){
-        guard let fileIn = InputStream(fileAtPath: inFileName!) else{
-            errorResult("Failed to initialize input stream.")
-            return
+    internal func encrypt(inFileName:String, outFileName: String, completion: @escaping (Result<String, any Error>) -> Void){
+        DispatchQueue.global(qos: .background).async {
+            guard let fileIn = InputStream(fileAtPath: inFileName) else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize input stream.", details: "")))
+                }
+                return
+            }
+            guard let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize output stream.", details: "")))
+                }
+                return
+            }
+            fileIn.open()
+            fileOut.open()
+            let iv  = try! Random.generateBytes(byteCount: 16)
+            guard  let secretKey = self.createAlphaNumericRandomString(length: kCCKeySizeAES256) else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INVALID_KEY", message: "Invalid Key", details:"")))
+                }
+                return
+            }
+            let key = arrayFrom(secretKey)
+            
+            
+            let bytesWritten = fileOut.write(iv, maxLength: iv.count)
+            
+            let encryptor = try! ChunkCryptor(encrypt: true, key: key, iv: iv)
+            guard bytesWritten == iv.count else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "IV_READ_FAILED", message: "Failed to read IV from encrypted output file.", details: "")))
+                }
+                return
+            }
+            
+            self.crypt(action: encryptor, from: fileIn, to: fileOut, taking: self.bufferSize)
+            
+            fileOut.close()
+            fileIn.close()
+            
+            DispatchQueue.main.async {
+                completion(Result.success(secretKey.toBase64()))
+            }
         }
-        guard let fileOut = OutputStream(toFileAtPath: outFileName!, append: false) else {
-            errorResult("Failed to initialize output stream.")
-            return
-        }
-        fileIn.open()
-        fileOut.open()
-        let iv  = try! Random.generateBytes(byteCount: 16)
-        guard  let secretKey = createAlphaNumericRandomString(length: kCCKeySizeAES256) else{
-            errorResult("Invalid Key")
-            return
-        }
-        let key = arrayFrom(secretKey)
-        
-        
-        let bytesWritten = fileOut.write(iv, maxLength: iv.count)
-        
-        let encryptor = try! ChunkCryptor(encrypt: true, key: key, iv: iv)
-        guard bytesWritten == iv.count else{
-            errorResult("Failed to write IV to encrypted output file.")
-            return
-        }
-        
-        crypt(action: encryptor, from: fileIn, to: fileOut, taking: bufferSize)
-        
-        fileOut.close()
-        fileIn.close()
-        
-        successResult(secretKey.toBase64())
     }
     
-    private func decrypt(using key:String, from inFileName:String, to outFileName: String, completion: @escaping (Result<Void, any Error>) -> Void){
-        guard let fileIn = InputStream(fileAtPath: inFileName!) else{
-            errorResult("Failed to initialize input stream.")
-            return
+    internal func decrypt(key:String, inFileName:String, outFileName: String, completion: @escaping (Result<Void, any Error>) -> Void){
+        DispatchQueue.global(qos: .background).async {
+            guard let fileIn = InputStream(fileAtPath: inFileName) else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize input stream.", details: "")))
+                }
+                return
+            }
+            guard let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize output stream.", details: "")))
+                }
+                return
+            }
+            fileIn.open()
+            fileOut.open()
+            
+            guard let secretkey = key.fromBase64() else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "INVALID_KEY", message: "Invalid Key", details: "")))
+                }
+                return
+            }
+            var iv  = Array<UInt8>(repeating: 0, count: 16)
+            let key = arrayFrom(secretkey)
+            
+            let bytesRead = fileIn.read(&iv, maxLength: iv.count)
+            
+            let decryptor = try! ChunkCryptor(encrypt: false, key: key, iv: iv)
+            guard bytesRead == iv.count else{
+                DispatchQueue.main.async {
+                    completion(Result.failure(PigeonError(code: "IV_READ_FAILED", message: "Failed to read IV from encrypted output file.", details: "")))
+                }
+                return
+            }
+            
+            self.crypt(action: decryptor, from: fileIn, to: fileOut, taking: self.bufferSize)
+            
+            fileOut.close()
+            fileIn.close()
+            
+            DispatchQueue.main.async {
+                completion(Result.success(()))
+            }
         }
-        guard let fileOut = OutputStream(toFileAtPath: outFileName!, append: false) else {
-            errorResult("Failed to initialize output stream.")
-            return
-        }
-        fileIn.open()
-        fileOut.open()
-        
-        guard let secretkey = baseKey?.fromBase64() else{
-            errorResult("Invalid key detected.")
-            return
-        }
-        var iv  = Array<UInt8>(repeating: 0, count: 16)
-        let key = arrayFrom(secretkey)
-        
-        let bytesRead = fileIn.read(&iv, maxLength: iv.count)
-        
-        let decryptor = try! ChunkCryptor(encrypt: false, key: key, iv: iv)
-        guard bytesRead == iv.count else{
-            errorResult("Failed to read IV from encrypted output file.")
-            return
-        }
-        
-        crypt(action: decryptor, from: fileIn, to: fileOut, taking: bufferSize)
-        
-        fileOut.close()
-        fileIn.close()
-        
-        successResult(nil)
     }
     
     private func createAlphaNumericRandomString(length: Int) -> String? {
@@ -144,19 +174,6 @@ public class FileEncrypterPlugin: NSObject, FlutterPlugin, FileEncrypterApi {
         }
         return (totalBytesRead, totalBytesWritten)
     }
-    
-    private func successResult(_ data: String?){
-        DispatchQueue.main.async {
-            self.result(data)
-        }
-    }
-    
-    func errorResult(_ description: String){
-        DispatchQueue.main.async {
-            self.result(FlutterError(code: "", message: description, details: ""))
-        }
-    }
-    
 }
 
 func arrayFrom(_ string: String) -> [UInt8]{
