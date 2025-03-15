@@ -1,4 +1,4 @@
-package np.com.sarbagyastha.file_encrypter
+package com.acmesoftware.file_encrypter
 
 import android.util.Base64
 import io.flutter.embedding.engine.plugins.FlutterPlugin

@@ -1,4 +1,4 @@
-group = "np.com.sarbagyastha.file_encrypter"
+group = "com.acmesoftware.file_encrypter"
 version = "1.0-SNAPSHOT"
 
 buildscript {
@@ -25,7 +25,7 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
-    namespace = "np.com.sarbagyastha.file_encrypter"
+    namespace = "com.acmesoftware.file_encrypter"
 
     compileSdk = 35
 

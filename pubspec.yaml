@@ -19,7 +19,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: np.com.sarbagyastha.file_encrypter
+        package: com.acmesoftware.file_encrypter
         pluginClass: FileEncrypterPlugin
       ios:
         pluginClass: FileEncrypterPlugin

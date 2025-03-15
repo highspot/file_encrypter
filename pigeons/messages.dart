@@ -10,7 +10,7 @@ import 'package:pigeon/pigeon.dart';
     kotlinOut:
         'android/src/main/kotlin/np/com/sarbagyastha/file_encrypter/Messages.kt',
     kotlinOptions: KotlinOptions(
-      package: 'np.com.sarbagyastha.file_encrypter',
+      package: 'com.acmesoftware.file_encrypter',
       errorClassName: 'FileEncrypterError',
     ),
     swiftOut: 'ios/Classes/Messages.swift',

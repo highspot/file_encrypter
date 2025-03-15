@@ -5,7 +5,7 @@
 // See also: https://pub.dev/packages/pigeon
 @file:Suppress("UNCHECKED_CAST", "ArrayInDataClass")
 
-package np.com.sarbagyastha.file_encrypter
+package com.acmesoftware.file_encrypter
 
 import android.util.Log
 import io.flutter.plugin.common.BasicMessageChannel
