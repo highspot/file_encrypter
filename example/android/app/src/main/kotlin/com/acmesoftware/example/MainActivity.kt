@@ -1,4 +1,4 @@
-package np.com.sarbagyastha.file_encrypter_example
+package com.acmesoftware.example
 
 import io.flutter.embedding.android.FlutterActivity
 
