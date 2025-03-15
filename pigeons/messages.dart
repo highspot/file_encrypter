@@ -8,12 +8,12 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     input: 'pigeons/messages.dart',
     kotlinOut:
-        'android/src/main/kotlin/np/com/sarbagyastha/file_encrypter/Messages.kt',
+        'android/src/main/kotlin/com/acmesoftware/file_encrypter/Messages.kt',
     kotlinOptions: KotlinOptions(
       package: 'com.acmesoftware.file_encrypter',
       errorClassName: 'FileEncrypterError',
     ),
-    swiftOut: 'ios/Classes/Messages.swift',
+    swiftOut: 'darwin/file_encrypter/Sources/file_encrypter/Messages.swift',
     dartOut: 'lib/src/messages.g.dart',
     copyrightHeader: 'pigeons/copyright.txt',
   ),

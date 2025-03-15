@@ -1,7 +1,7 @@
 name: file_encrypter
-description: "A new Flutter plugin project."
+description: Super fast file encrypter  for flutter.
 version: 0.0.1
-homepage:
+homepage: https://acmesoftware.com
 
 environment:
   sdk: ^3.7.0
@@ -23,3 +23,7 @@ flutter:
         pluginClass: FileEncrypterPlugin
       ios:
         pluginClass: FileEncrypterPlugin
+        sharedDarwinSource: true
+      macos:
+        pluginClass: FileEncrypterPlugin
+        sharedDarwinSource: true
