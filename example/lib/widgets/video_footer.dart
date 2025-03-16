@@ -4,10 +4,16 @@ import 'package:file_encrypter_example/widgets/crypt_button_group.dart';
 import 'package:flutter/material.dart';
 
 class VideoFooter extends StatefulWidget {
-  const VideoFooter({required this.video, required this.onDownload, super.key});
+  const VideoFooter({
+    required this.video,
+    required this.onDownload,
+    required this.onPlay,
+    super.key,
+  });
 
   final Video video;
   final VoidCallback onDownload;
+  final VoidCallback onPlay;
 
   @override
   State<VideoFooter> createState() => _VideoFooterState();
@@ -15,6 +21,8 @@ class VideoFooter extends StatefulWidget {
 
 class _VideoFooterState extends State<VideoFooter> {
   bool _isDownloaded = false;
+  String _encryptDuration = '';
+  String _decryptDuration = '';
 
   @override
   void initState() {
@@ -56,7 +64,7 @@ class _VideoFooterState extends State<VideoFooter> {
                   ),
                 ),
                 Text(
-                  widget.video.subtitle,
+                  subtitle,
                   style: textTheme.labelSmall!.copyWith(
                     color: colorScheme.secondary,
                     fontWeight: FontWeight.w200,
@@ -68,8 +76,16 @@ class _VideoFooterState extends State<VideoFooter> {
             if (_isDownloaded)
               CryptButtonGroup(
                 video: widget.video,
-                onEncrypt: print,
-                onDecrypt: print,
+                onEncrypt: (duration) {
+                  _encryptDuration = duration;
+                  setState(() {});
+                },
+                onDecrypt: (duration) {
+                  _decryptDuration = duration;
+                  setState(() {});
+
+                  widget.onPlay();
+                },
               )
             else
               IconButton.filledTonal(
@@ -83,5 +99,13 @@ class _VideoFooterState extends State<VideoFooter> {
         ),
       ),
     );
+  }
+
+  String get subtitle {
+    if (_encryptDuration.isEmpty) return widget.video.subtitle;
+
+    if (_decryptDuration.isEmpty) return 'Enc. in $_encryptDuration';
+
+    return 'Enc. in $_encryptDuration; Dec. in $_decryptDuration';
   }
 }

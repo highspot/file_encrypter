@@ -14,13 +14,12 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('File Encrypter Demo')),
-      body: ListView.separated(
-        padding: EdgeInsets.all(16),
-        itemCount: videos.length,
-        itemBuilder: (_, index) {
-          return VideoCard(video: videos[index]);
-        },
-        separatorBuilder: (_, _) => const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          spacing: 16,
+          children: [for (final video in videos) VideoCard(video: video)],
+        ),
       ),
     );
   }

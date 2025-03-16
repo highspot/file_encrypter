@@ -40,6 +40,7 @@ class _VideoCardState extends State<VideoCard> {
                   if (!mounted) return;
                   setState(() {});
                 },
+                onPlay: () {},
               ),
             ],
           ),
