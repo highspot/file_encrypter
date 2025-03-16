@@ -15,7 +15,6 @@ class EncrypterApp extends StatelessWidget {
       theme: ThemeData(
         colorSchemeSeed: Colors.amber,
         scaffoldBackgroundColor: Colors.white,
-        progressIndicatorTheme: ProgressIndicatorThemeData(year2023: false),
       ),
       debugShowCheckedModeBanner: false,
       home: const HomePage(),

@@ -50,7 +50,8 @@ extension VideoUtil on Video {
 
   Future<String> get size async {
     final stat = await File(await downloadPath).stat();
-    return '${stat.size / 1024 / 1024} MB';
+    final sizeInMB = stat.size / 1024 / 1024;
+    return '${sizeInMB.ceil()} MB';
   }
 }
 
