@@ -1,80 +1,69 @@
+import 'dart:ui';
+
+import 'package:file_encrypter_example/utils/video_util.dart';
 import 'package:file_encrypter_example/utils/videos.dart';
+import 'package:file_encrypter_example/widgets/video_footer.dart';
 import 'package:flutter/material.dart';
 
-class VideoCard extends StatelessWidget {
+class VideoCard extends StatefulWidget {
   const VideoCard({required this.video, super.key});
 
   final Video video;
 
   @override
+  State<VideoCard> createState() => _VideoCardState();
+}
+
+class _VideoCardState extends State<VideoCard> {
+  double _progress = 0;
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Stack(
         children: [
-          _Thumbnail(source: video.thumbSource),
-          _VideoFooter(video: video),
+          Column(
+            children: [
+              _Thumbnail(source: widget.video.thumbSource),
+              VideoFooter(
+                video: widget.video,
+                onDownload: () async {
+                  _updateProgress(.001);
+                  await widget.video.download(
+                    onProgress: (received, total) {
+                      _updateProgress(received / total);
+                    },
+                  );
+
+                  if (!mounted) return;
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+          if (_progress > 0 && _progress < 1)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                child: Container(
+                  color: Theme.of(context).colorScheme.surface.withAlpha(40),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 48),
+                  child: LinearProgressIndicator(value: _progress),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
-}
 
-class _VideoFooter extends StatelessWidget {
-  const _VideoFooter({required this.video});
-
-  final Video video;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-    final borderSide = BorderSide(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      width: 2,
-    );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(left: borderSide, right: borderSide, bottom: borderSide),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  video.title,
-                  style: textTheme.titleMedium!.copyWith(
-                    color: colorScheme.secondary,
-                  ),
-                ),
-                Text(
-                  video.subtitle,
-                  style: textTheme.labelSmall!.copyWith(
-                    color: colorScheme.secondary,
-                    fontWeight: FontWeight.w200,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            IconButton.filledTonal(
-              onPressed: () {},
-              icon: Icon(Icons.file_download),
-              iconSize: 20,
-              color: colorScheme.secondary,
-            ),
-          ],
-        ),
-      ),
-    );
+  void _updateProgress(double progress) {
+    _progress = progress;
+    if (!mounted) return;
+    setState(() {});
   }
 }
 

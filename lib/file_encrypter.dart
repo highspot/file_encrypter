@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:developer';
+
 import 'package:file_encrypter/src/messages.g.dart';
 
 class FileEncrypter {

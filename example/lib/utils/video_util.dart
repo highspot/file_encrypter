@@ -23,7 +23,7 @@ extension VideoUtil on Video {
     try {
       await _dio.download(
         source,
-        _downloadPath,
+        await downloadPath,
         onReceiveProgress: onProgress,
         options: Options(
           receiveTimeout: Duration.zero,
@@ -39,17 +39,17 @@ extension VideoUtil on Video {
     }
   }
 
-  Future<String> get _downloadPath async {
+  Future<String> get downloadPath async {
     final tempDir = await getTemporaryDirectory();
-    return p.join(tempDir.path, fileName, '.download');
+    return p.join(tempDir.path, '$fileName.download');
   }
 
   Future<bool> get isDownloaded async {
-    return File(await _downloadPath).exists();
+    return File(await downloadPath).exists();
   }
 
   Future<String> get size async {
-    final stat = await File(await _downloadPath).stat();
+    final stat = await File(await downloadPath).stat();
     return '${stat.size / 1024 / 1024} MB';
   }
 }

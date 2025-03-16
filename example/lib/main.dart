@@ -13,8 +13,9 @@ class EncrypterApp extends StatelessWidget {
     return MaterialApp(
       title: 'File Encrypter Demo',
       theme: ThemeData(
-        colorSchemeSeed: Colors.deepPurple,
+        colorSchemeSeed: Colors.amber,
         scaffoldBackgroundColor: Colors.white,
+        progressIndicatorTheme: ProgressIndicatorThemeData(year2023: false),
       ),
       home: const HomePage(),
     );
