@@ -55,7 +55,7 @@ This will restore `open_file.mkv` from `encrypted_file.dat`.
 
 ## 📜 License
 
-This project is licensed under the [BSD-3-Clause License](LICENSE).
+This project is licensed under the [BSD-3-Clause License](./LICENSE).
 
 ---
 

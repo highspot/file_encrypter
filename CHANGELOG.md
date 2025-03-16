@@ -1,8 +1,14 @@
 # Changelog
 
+## 2.0.1
+
+**Mar 16, 2025**
+
+- Minor changes to improve Pub score.
+
 ## 2.0.0
 
-** Mar 16, 2025**
+**Mar 16, 2025**
 
 - Migrates to v2 embedding on Android for improved performance.
 - Adopts Swift Package Manager (SPM) on iOS.
