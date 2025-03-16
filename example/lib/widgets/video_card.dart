@@ -1,9 +1,11 @@
 import 'dart:ui';
 
+import 'package:chewie/chewie.dart';
 import 'package:file_encrypter_example/utils/video_util.dart';
 import 'package:file_encrypter_example/utils/videos.dart';
 import 'package:file_encrypter_example/widgets/video_footer.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 class VideoCard extends StatefulWidget {
   const VideoCard({required this.video, super.key});
@@ -40,7 +42,21 @@ class _VideoCardState extends State<VideoCard> {
                   if (!mounted) return;
                   setState(() {});
                 },
-                onPlay: () {},
+                onPlay: () async {
+                  final videoPlayerController = VideoPlayerController.networkUrl(
+                    Uri.parse(
+                      'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
+                    ),
+                  );
+
+                  await videoPlayerController.initialize();
+
+                  final chewieController = ChewieController(
+                    videoPlayerController: videoPlayerController,
+                    autoPlay: true,
+                    looping: true,
+                  );
+                },
               ),
             ],
           ),
