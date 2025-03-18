@@ -80,7 +80,7 @@ class _VideoFooterState extends State<VideoFooter> {
             ),
             const SizedBox(width: 8),
             Container(
-              width: 100,
+              width: 106,
               alignment: Alignment.centerRight,
               child:
                   _isDownloaded

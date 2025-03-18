@@ -11,19 +11,18 @@ import CommonCrypto
 class Random{
     class func generateBytes(byteCount: Int) throws -> [UInt8]{
         guard byteCount > 0 else {
-            throw "RNG: Invalid Parameter"
+            throw RandomizationError.runtimeError("RNG: Invalid Parameter")
         }
         var bytes: [UInt8] = Array(repeating: UInt8(0), count: byteCount)
         let status = CCRandomGenerateBytes(&bytes, byteCount)
         
         guard status == kCCSuccess else {
-            throw status.description
+            throw RandomizationError.runtimeError(status.description)
         }
         return bytes
     }
 }
 
-
-extension String: @retroactive LocalizedError {
-    public var errorDescription: String? {return self}
+enum RandomizationError: Error {
+    case runtimeError(String)
 }
