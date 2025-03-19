@@ -8,21 +8,25 @@
 import Foundation
 import CommonCrypto
 
-class Random{
-    class func generateBytes(byteCount: Int) throws -> [UInt8]{
+class Random {
+    class func generateBytes(byteCount: Int) throws -> Data {
         guard byteCount > 0 else {
-            throw RandomizationError.runtimeError("RNG: Invalid Parameter")
+            throw RandomizationError.invalidParameter("RNG: Invalid Parameter")
         }
-        var bytes: [UInt8] = Array(repeating: UInt8(0), count: byteCount)
-        let status = CCRandomGenerateBytes(&bytes, byteCount)
+        
+        var bytes = Data(count: byteCount)
+        let status = bytes.withUnsafeMutableBytes { buffer in
+            CCRandomGenerateBytes(buffer.baseAddress!, byteCount)
+        }
         
         guard status == kCCSuccess else {
-            throw RandomizationError.runtimeError(status.description)
+            throw RandomizationError.randomGenerationFailed(status: Int(status))
         }
         return bytes
     }
 }
 
 enum RandomizationError: Error {
-    case runtimeError(String)
+    case invalidParameter(String)
+    case randomGenerationFailed(status: Int)
 }
