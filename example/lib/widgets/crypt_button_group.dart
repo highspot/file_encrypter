@@ -48,7 +48,13 @@ class _CryptButtonGroupState extends State<CryptButtonGroup> {
     );
 
     return AnimatedCrossFade(
-      firstChild: _encrypting ? _LoadingIndicator() : encryptButton,
+      firstChild:
+          _encrypting
+              ? Padding(
+                padding: const EdgeInsets.all(4),
+                child: _LoadingIndicator(),
+              )
+              : encryptButton,
       secondChild: Row(
         children: [
           encryptButton,
