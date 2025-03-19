@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.2
+
+**Mar 19, 2025**
+
+- The encryption and decryption process is now faster and more efficient.
+- Platform-side code has been refactored for improved readability and maintainability.
+- Resolved compatibility issues with Xcode versions prior to 16.
+
 ## 2.0.1
 
 **Mar 16, 2025**
