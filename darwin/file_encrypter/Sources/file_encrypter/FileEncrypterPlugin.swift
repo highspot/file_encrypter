@@ -14,11 +14,10 @@ import FlutterMacOS
 #endif
 
 public class FileEncrypterPlugin: NSObject, FlutterPlugin, FileEncrypterApi {
-    let bufferSize = 8192
+    let bufferSize = 65536
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let instance = FileEncrypterPlugin()
-        // Workaround for https://github.com/flutter/flutter/issues/118103.
 #if os(iOS)
         let messenger = registrar.messenger()
 #else
@@ -27,170 +26,123 @@ public class FileEncrypterPlugin: NSObject, FlutterPlugin, FileEncrypterApi {
         FileEncrypterApiSetup.setUp(binaryMessenger: messenger, api: instance)
     }
     
-    internal func encrypt(inFileName:String, outFileName: String, completion: @escaping (Result<String, any Error>) -> Void){
+    internal func encrypt(inFileName: String, outFileName: String, completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.global(qos: .background).async {
-            guard let fileIn = InputStream(fileAtPath: inFileName) else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize input stream.", details: "")))
-                }
+            guard let fileIn = InputStream(fileAtPath: inFileName),
+                  let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
+                completion(.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize file streams.", details: "")))
                 return
             }
-            guard let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize output stream.", details: "")))
-                }
-                return
-            }
+            
             fileIn.open()
             fileOut.open()
-            let iv  = try! Random.generateBytes(byteCount: 16)
-            guard  let secretKey = self.createAlphaNumericRandomString(length: kCCKeySizeAES256) else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INVALID_KEY", message: "Invalid Key", details:"")))
-                }
-                return
-            }
-            let key = arrayFrom(secretKey)
             
-            
-            let bytesWritten = fileOut.write(iv, maxLength: iv.count)
-            
-            let encryptor = try! ChunkCryptor(encrypt: true, key: key, iv: iv)
-            guard bytesWritten == iv.count else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "IV_READ_FAILED", message: "Failed to read IV from encrypted output file.", details: "")))
-                }
+            guard let iv = try? Random.generateBytes(byteCount: 16),
+                  let secretKeyData = self.generateRandomKey(length: kCCKeySizeAES256) else {
+                completion(.failure(PigeonError(code: "INVALID_KEY", message: "Failed to generate encryption key.", details: "")))
                 return
             }
             
-            self.crypt(action: encryptor, from: fileIn, to: fileOut, taking: self.bufferSize)
+            let key = [UInt8](secretKeyData)
+            fileOut.write(iv, maxLength: iv.count)
             
-            fileOut.close()
-            fileIn.close()
-            
-            DispatchQueue.main.async {
-                completion(Result.success(secretKey.toBase64()))
+            do {
+                let encryptor = try ChunkCryptor(encrypt: true, key: key, iv: iv)
+                self.crypt(action: encryptor, from: fileIn, to: fileOut)
+                fileOut.close()
+                fileIn.close()
+                completion(.success(secretKeyData.base64EncodedString()))
+            } catch {
+                completion(.failure(PigeonError(code: "ENCRYPTION_FAILED", message: error.localizedDescription, details: "")))
             }
         }
     }
     
-    internal func decrypt(key:String, inFileName:String, outFileName: String, completion: @escaping (Result<Void, any Error>) -> Void){
+    internal func decrypt(key: String, inFileName: String, outFileName: String, completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.global(qos: .background).async {
-            guard let fileIn = InputStream(fileAtPath: inFileName) else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize input stream.", details: "")))
-                }
+            guard let fileIn = InputStream(fileAtPath: inFileName),
+                  let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
+                completion(.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize file streams.", details: "")))
                 return
             }
-            guard let fileOut = OutputStream(toFileAtPath: outFileName, append: false) else {
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INIT_FAILED", message: "Failed to initialize output stream.", details: "")))
-                }
-                return
-            }
+            
             fileIn.open()
             fileOut.open()
             
-            guard let secretkey = key.fromBase64() else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "INVALID_KEY", message: "Invalid Key", details: "")))
-                }
+            guard let secretKeyData = Data(base64Encoded: key) else {
+                completion(.failure(PigeonError(code: "INVALID_KEY", message: "Invalid Base64 Key.", details: "")))
                 return
             }
-            var iv  = Array<UInt8>(repeating: 0, count: 16)
-            let key = arrayFrom(secretkey)
             
+            var iv = [UInt8](repeating: 0, count: 16)
             let bytesRead = fileIn.read(&iv, maxLength: iv.count)
-            
-            let decryptor = try! ChunkCryptor(encrypt: false, key: key, iv: iv)
-            guard bytesRead == iv.count else{
-                DispatchQueue.main.async {
-                    completion(Result.failure(PigeonError(code: "IV_READ_FAILED", message: "Failed to read IV from encrypted output file.", details: "")))
-                }
+            guard bytesRead == iv.count else {
+                completion(.failure(PigeonError(code: "IV_READ_FAILED", message: "Failed to read IV from encrypted file.", details: "")))
                 return
             }
             
-            self.crypt(action: decryptor, from: fileIn, to: fileOut, taking: self.bufferSize)
+            let secretKey = [UInt8](secretKeyData)
             
-            fileOut.close()
-            fileIn.close()
-            
-            DispatchQueue.main.async {
-                completion(Result.success(()))
+            do {
+                let decryptor = try ChunkCryptor(encrypt: false, key: secretKey, iv: iv)
+                self.crypt(action: decryptor, from: fileIn, to: fileOut)
+                fileOut.close()
+                fileIn.close()
+                completion(.success(()))
+            } catch {
+                completion(.failure(PigeonError(code: "DECRYPTION_FAILED", message: error.localizedDescription, details: "")))
             }
         }
     }
     
-    private func createAlphaNumericRandomString(length: Int) -> String? {
-        let randomNumberModulo: UInt8 = 64
-        let symbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-        var alphaNumericRandomString = ""
-        let maximumIndex = symbols.count - 1
-        
-        while alphaNumericRandomString.count != length {
-            let bytesCount = 1
-            var randomByte: UInt8 = 0
-            
-            guard errSecSuccess == SecRandomCopyBytes(kSecRandomDefault, bytesCount, &randomByte) else {
-                return nil
-            }
-            let randomIndex = randomByte % randomNumberModulo
-            guard randomIndex <= maximumIndex else { continue }
-            let symbolIndex = symbols.index(symbols.startIndex, offsetBy: Int(randomIndex))
-            alphaNumericRandomString.append(symbols[symbolIndex])
-        }
-        return alphaNumericRandomString
+    private func generateRandomKey(length: Int) -> Data? {
+        var key = Data(count: length)
+        let result = key.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!) }
+        return result == errSecSuccess ? key : nil
     }
     
-    @discardableResult private func crypt(action sc : ChunkCryptor,from  inputStream: InputStream,to outputStream: OutputStream,taking bufferSize: Int) -> (bytesRead: Int, bytesWritten: Int)
-    {
-        var inputBuffer = Array<UInt8>(repeating:0, count:1024)
-        var outputBuffer = Array<UInt8>(repeating:0, count:1024)
+    @discardableResult private func crypt(action sc: ChunkCryptor, from inputStream: InputStream, to outputStream: OutputStream) -> (bytesRead: Int, bytesWritten: Int) {
+        var inputBuffer = [UInt8](repeating: 0, count: bufferSize)
+        var outputBuffer = [UInt8](repeating: 0, count: bufferSize)
         
-        
-        var cryptedBytes : Int = 0
-        var totalBytesWritten = 0
         var totalBytesRead = 0
-        while inputStream.hasBytesAvailable
-        {
-            let bytesRead = inputStream.read(&inputBuffer, maxLength: inputBuffer.count)
+        var totalBytesWritten = 0
+        
+        while inputStream.hasBytesAvailable {
+            let bytesRead = inputStream.read(&inputBuffer, maxLength: bufferSize)
+            guard bytesRead > 0 else { break }
+            
             totalBytesRead += bytesRead
-            let status = sc.update(bufferIn: inputBuffer, byteCountIn: bytesRead, bufferOut: &outputBuffer, byteCapacityOut: outputBuffer.count, byteCountOut: &cryptedBytes)
-            assert(status == kCCSuccess)
-            if(cryptedBytes > 0)
-            {
-                let bytesWritten = outputStream.write(outputBuffer, maxLength: Int(cryptedBytes))
-                assert(bytesWritten == Int(cryptedBytes))
+            var cryptedBytes: Int = 0
+            
+            let status = sc.update(bufferIn: inputBuffer, byteCountIn: bytesRead, bufferOut: &outputBuffer, byteCapacityOut: bufferSize, byteCountOut: &cryptedBytes)
+            if status != kCCSuccess {
+                return (totalBytesRead, totalBytesWritten)
+            }
+            
+            if cryptedBytes > 0 {
+                let bytesWritten = outputStream.write(outputBuffer, maxLength: cryptedBytes)
                 totalBytesWritten += bytesWritten
             }
         }
-        let status = sc.final(bufferOut: &outputBuffer, byteCapacityOut: outputBuffer.count, byteCountOut: &cryptedBytes)
-        assert(status == kCCSuccess)
-        if(cryptedBytes > 0)
-        {
-            let bytesWritten = outputStream.write(outputBuffer, maxLength: Int(cryptedBytes))
-            assert(bytesWritten == Int(cryptedBytes))
+        
+        var finalBytes: Int = 0
+        let status = sc.final(bufferOut: &outputBuffer, byteCapacityOut: bufferSize, byteCountOut: &finalBytes)
+        if status == kCCSuccess, finalBytes > 0 {
+            let bytesWritten = outputStream.write(outputBuffer, maxLength: finalBytes)
             totalBytesWritten += bytesWritten
         }
+        
         return (totalBytesRead, totalBytesWritten)
     }
 }
 
-func arrayFrom(_ string: String) -> [UInt8]{
-    let array = [UInt8](string.utf8)
-    return array
-}
-
-extension String{
-    func fromBase64() -> String? {
-        guard let data = Data(base64Encoded: self) else{
-            return nil
-        }
-        
-        return String(data: data, encoding: .utf8)
+extension String {
+    func fromBase64() -> Data? {
+        return Data(base64Encoded: self)
     }
     
-    func toBase64() -> String{
-        return Data(self.utf8).base64EncodedString()
+    func toBase64() -> String {
+        return Data(utf8).base64EncodedString()
     }
 }
