@@ -48,13 +48,12 @@ class _CryptButtonGroupState extends State<CryptButtonGroup> {
     );
 
     return AnimatedCrossFade(
-      firstChild:
-          _encrypting
-              ? Padding(
-                padding: const EdgeInsets.all(4),
-                child: _LoadingIndicator(),
-              )
-              : encryptButton,
+      firstChild: _encrypting
+          ? Padding(
+              padding: const EdgeInsets.all(4),
+              child: _LoadingIndicator(),
+            )
+          : encryptButton,
       secondChild: Row(
         children: [
           encryptButton,
@@ -62,14 +61,13 @@ class _CryptButtonGroupState extends State<CryptButtonGroup> {
           _decrypting
               ? _LoadingIndicator()
               : IconButton.filledTonal(
-                onPressed: _decrypt,
-                icon: Icon(Icons.play_arrow),
-                color: colorScheme.tertiary,
-              ),
+                  onPressed: _decrypt,
+                  icon: Icon(Icons.play_arrow),
+                  color: colorScheme.tertiary,
+                ),
         ],
       ),
-      crossFadeState:
-          encrypted ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      crossFadeState: encrypted ? CrossFadeState.showSecond : CrossFadeState.showFirst,
       duration: const Duration(milliseconds: 200),
     );
   }
@@ -138,7 +136,6 @@ class _LoadingIndicator extends StatelessWidget {
       width: 40,
       height: 40,
       child: CircularProgressIndicator(
-        padding: const EdgeInsets.all(8),
         color: colorScheme.tertiary,
         strokeWidth: 2,
       ),
